@@ -12,6 +12,7 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import math
 
 def filter_data(data, condition):
     """
@@ -102,14 +103,25 @@ def survival_stats(data, outcomes, key, filters = []):
         # Overlay each bin's survival rates
         nonsurv_vals = all_data[all_data['Survived'] == 0][key].reset_index(drop = True)
         surv_vals = all_data[all_data['Survived'] == 1][key].reset_index(drop = True)
-        plt.hist(nonsurv_vals, bins = bins, alpha = 0.6,
+        ns = plt.hist(nonsurv_vals, bins = bins, alpha = 0.6,
                  color = 'red', label = 'Did not survive')
-        plt.hist(surv_vals, bins = bins, alpha = 0.6,
+        ys = plt.hist(surv_vals, bins = bins, alpha = 0.6,
                  color = 'green', label = 'Survived')
 
         # Add legend to plot
         plt.xlim(0, bins.max())
         plt.legend(framealpha = 0.8)
+
+        dsum = 0
+        for r in np.arange(len(ns[0])):
+            sur = ys[0][r]
+            nsur = ns[0][r]
+            t = sur + nsur
+            d = 0
+            if t > 0 and sur > 0 and nsur > 0:
+                d = - sur/float(t) * math.log(sur/float(t), 2) - nsur/float(t) * math.log(nsur/float(t), 2)
+            dsum += (d * float(t)/len(all_data))
+        print dsum
 
     # 'Categorical' features
     else:
@@ -142,11 +154,24 @@ def survival_stats(data, outcomes, key, filters = []):
             plt.xticks(np.arange(len(frame)), values)
             plt.legend((nonsurv_bar[0], surv_bar[0]),('Did not survive', 'Survived'), framealpha = 0.8)
 
+
+        dsum = 0
+        for r in np.arange(len(frame)):
+            sur = frame.loc[r]['Survived']
+            nsur = frame.loc[r]['NSurvived']
+            t = sur + nsur
+            d = 0
+            if t > 0 and sur > 0 and nsur > 0:
+                d = - sur/float(t) * math.log(sur/float(t), 2) - nsur/float(t) * math.log(nsur/float(t), 2)
+            dsum += (d * float(t)/len(all_data))
+        print dsum
+
+
     # Common attributes for plot formatting
     plt.xlabel(key)
     plt.ylabel('Number of Passengers')
     plt.title('Passenger Survival Statistics With \'%s\' Feature'%(key))
-    plt.show()
+    # plt.show()
 
     # Report number of passengers with missing values
     if sum(pd.isnull(all_data[key])):
